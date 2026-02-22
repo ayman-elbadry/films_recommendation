@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+PyJWT
+passlib[bcrypt]
+bcrypt==4.0.1
+pydantic
+numpy
+scipy
+pandas
+scikit-learn
+joblib
