@@ -97,7 +97,15 @@ export default function HomePage() {
                             >
                                 <div className="rec-rank">#{idx + 1}</div>
                                 <div className="rec-poster">
-                                    <span className="rec-emoji">🎬</span>
+                                    {movie.poster_url ? (
+                                        <img
+                                            src={movie.poster_url}
+                                            alt={movie.title}
+                                            className="rec-poster-img"
+                                        />
+                                    ) : (
+                                        <span className="rec-emoji">🎬</span>
+                                    )}
                                 </div>
                                 <div className="rec-body">
                                     <h3 className="rec-title">{movie.title}</h3>

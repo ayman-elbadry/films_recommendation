@@ -18,6 +18,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from svd_model import SVDModel  # noqa: F401 — needed for pickle to resolve the class
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from tmdb_service import search_poster
+
 from auth import get_current_user
 from storage import get_ratings_for_user
 
@@ -117,7 +119,7 @@ def _predict_svd_ratings(user_id: int, movie_ids: list[int]) -> list[dict]:
 # Endpoints
 # ------------------------------------------------------------------
 @router.get("/popular")
-def get_popular_movies(limit: int = 10):
+async def get_popular_movies(limit: int = 10):
     """
     Return popular movies for the cold-start onboarding screen.
     These are high-rated movies with many ratings.
@@ -128,16 +130,20 @@ def get_popular_movies(limit: int = 10):
         row = movies_df[movies_df["movieId"] == mid]
         if not row.empty:
             r = row.iloc[0]
+            movie_id = int(r["movieId"])
+            title = str(r["title"])
+            poster_url = await search_poster(movie_id, title)
             results.append({
-                "movieId": int(r["movieId"]),
-                "title": str(r["title"]),
+                "movieId": movie_id,
+                "title": title,
                 "genres": str(r["genres"]),
+                "poster_url": poster_url,
             })
     return results
 
 
 @router.get("")
-def get_recommendations(user: dict = Depends(get_current_user)):
+async def get_recommendations(user: dict = Depends(get_current_user)):
     """
     Hybrid recommendation endpoint:
     1. Find a movie the user recently liked (rating >= 4.0)
@@ -179,6 +185,10 @@ def get_recommendations(user: dict = Depends(get_current_user)):
     # Step 4: Sort by predicted rating, return top 10
     predictions.sort(key=lambda x: x["predicted_rating"], reverse=True)
     top_10 = predictions[:10]
+
+    # Step 5: Fetch poster URLs from TMDB
+    for movie in top_10:
+        movie["poster_url"] = await search_poster(movie["movieId"], movie["title"])
 
     return {
         "user_id": user_id,

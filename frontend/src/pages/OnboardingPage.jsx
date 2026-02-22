@@ -106,7 +106,15 @@ export default function OnboardingPage() {
                             className={`movie-card ${ratings[movie.movieId] ? 'rated' : ''}`}
                         >
                             <div className="movie-poster">
-                                <span className="poster-emoji">🎞️</span>
+                                {movie.poster_url ? (
+                                    <img
+                                        src={movie.poster_url}
+                                        alt={movie.title}
+                                        className="poster-img"
+                                    />
+                                ) : (
+                                    <span className="poster-emoji">🎞️</span>
+                                )}
                             </div>
                             <div className="movie-info">
                                 <h3>{movie.title}</h3>

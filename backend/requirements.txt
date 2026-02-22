@@ -9,3 +9,4 @@ scipy
 pandas
 scikit-learn
 joblib
+httpx
