@@ -29,11 +29,13 @@ router = APIRouter(prefix="/recommendations", tags=["Recommendations"])
 # Load data and model at module level (once on import / startup)
 # ------------------------------------------------------------------
 BASE_DIR = Path(__file__).parent.parent  # backend/
-DATA_ROOT = BASE_DIR.parent             # project root (where CSVs live)
 MODEL_PATH = BASE_DIR / "models" / "svd_model.pkl"
 
 # Load movies
-_movies_path = DATA_ROOT / "movies.csv"
+_movies_path = BASE_DIR / "movies.csv"
+if not _movies_path.exists():
+    _movies_path = BASE_DIR.parent / "movies.csv" # fallback for local dev
+
 if _movies_path.exists():
     movies_df = pd.read_csv(_movies_path)
     # Preprocess genres: replace '|' with space for TF-IDF
@@ -45,8 +47,15 @@ else:
 
 # Build TF-IDF matrix on genres
 _tfidf = TfidfVectorizer(stop_words="english")
-_tfidf_matrix = _tfidf.fit_transform(movies_df["genres_clean"])
-print(f"[ML] TF-IDF matrix shape: {_tfidf_matrix.shape}")
+_tfidf_matrix = None
+if len(movies_df) > 0 and len(movies_df["genres_clean"].str.strip().unique()) > 1:
+    try:
+        _tfidf_matrix = _tfidf.fit_transform(movies_df["genres_clean"])
+        print(f"[ML] TF-IDF matrix shape: {_tfidf_matrix.shape}")
+    except ValueError:
+        print("[ML] WARNING: Could not build TF-IDF matrix (empty vocabulary or stop words).")
+else:
+    print("[ML] WARNING: Not enough movies to build TF-IDF matrix")
 
 # Load SVD model
 svd_model = None
@@ -58,22 +67,15 @@ else:
     print(f"[ML] WARNING: SVD model not found at {MODEL_PATH}. Run train_model.py first!")
 
 # Precompute popular movies (by average rating count from the original ratings CSV)
-_ratings_path = DATA_ROOT / "ratings.csv"
+import json
+_popular_path = BASE_DIR / "data" / "popular_movies.json"
 _popular_movie_ids = []
-if _ratings_path.exists():
-    # Read just enough to compute popularity
-    _ratings_sample = pd.read_csv(_ratings_path, usecols=["movieId", "rating"], nrows=1_000_000)
-    _popularity = (
-        _ratings_sample.groupby("movieId")
-        .agg(count=("rating", "count"), mean=("rating", "mean"))
-        .reset_index()
-    )
-    # Filter: at least 100 ratings, sort by mean rating
-    _popular = _popularity[_popularity["count"] >= 100].sort_values("mean", ascending=False)
-    _popular_movie_ids = _popular["movieId"].head(50).tolist()
-    print(f"[ML] Precomputed {len(_popular_movie_ids)} popular movies")
+if _popular_path.exists():
+    with open(_popular_path, "r") as f:
+        _popular_movie_ids = json.load(f)
+    print(f"[ML] Loaded {len(_popular_movie_ids)} popular movies from json")
 else:
-    print(f"[ML] WARNING: ratings.csv not found at {_ratings_path}")
+    print(f"[ML] WARNING: popular movies json not found at {_popular_path}")
 
 
 # ------------------------------------------------------------------
@@ -81,6 +83,8 @@ else:
 # ------------------------------------------------------------------
 def _get_content_similar_movies(movie_id: int, top_n: int = 30) -> list[int]:
     """Find top_n movies similar to movie_id based on TF-IDF genre similarity."""
+    if _tfidf_matrix is None:
+        return []
     idx_matches = movies_df[movies_df["movieId"] == movie_id].index
     if len(idx_matches) == 0:
         return []
