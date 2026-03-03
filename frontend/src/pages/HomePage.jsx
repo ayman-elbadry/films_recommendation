@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { getRecommendations } from '../api';
 import Navbar from '../components/Navbar';
 import MovieDetailsModal from '../components/MovieDetailsModal';
@@ -11,8 +10,6 @@ export default function HomePage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [selectedMovieId, setSelectedMovieId] = useState(null);
-    const { user, logout } = useAuth();
-    const navigate = useNavigate();
 
     const fetchRecommendations = () => {
         setLoading(true);
@@ -32,11 +29,6 @@ export default function HomePage() {
     useEffect(() => {
         fetchRecommendations();
     }, []);
-
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
-    };
 
     return (
         <div className="home-container">
