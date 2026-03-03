@@ -1,0 +1,119 @@
+.admin-container {
+    padding: 40px 20px;
+    max-width: 600px;
+    margin: 0 auto;
+    color: white;
+}
+
+.back-btn {
+    background: none;
+    border: none;
+    color: #a78bfa;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0;
+    margin-bottom: 20px;
+}
+
+.back-btn:hover {
+    color: #c4b5fd;
+    text-decoration: underline;
+}
+
+.admin-header h1 {
+    font-size: 2rem;
+    margin-bottom: 8px;
+    background: linear-gradient(to right, #a8c0ff, #3f2b96);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.admin-header p {
+    color: #9ca3af;
+    margin-bottom: 30px;
+}
+
+.admin-card {
+    background-color: #1e1b4b;
+    border: 1px solid #3b0764;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.admin-card h2 {
+    font-size: 1.25rem;
+    margin-bottom: 15px;
+}
+
+.admin-desc {
+    color: #cbd5e1;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 25px;
+}
+
+.admin-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.admin-form input {
+    padding: 12px 15px;
+    border-radius: 6px;
+    border: 1px solid #4c1d95;
+    background-color: #2e1065;
+    color: white;
+    font-size: 1rem;
+}
+
+.admin-form input:focus {
+    outline: none;
+    border-color: #a78bfa;
+    box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.3);
+}
+
+.retrain-btn {
+    background: linear-gradient(to right, #9333ea, #4f46e5);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.retrain-btn:hover:not(:disabled) {
+    opacity: 0.9;
+}
+
+.retrain-btn:disabled {
+    background: #4b5563;
+    cursor: not-allowed;
+    color: #9ca3af;
+}
+
+.admin-success,
+.admin-error {
+    margin-top: 20px;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    text-align: center;
+}
+
+.admin-success {
+    background-color: rgba(16, 185, 129, 0.2);
+    border: 1px solid #059669;
+    color: #34d399;
+}
+
+.admin-error {
+    background-color: rgba(239, 68, 68, 0.2);
+    border: 1px solid #b91c1c;
+    color: #f87171;
+}

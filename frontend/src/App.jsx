@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import OnboardingPage from './pages/OnboardingPage';
 import HomePage from './pages/HomePage';
+import AdminPage from './pages/AdminPage';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -40,6 +41,10 @@ function AppRoutes() {
       <Route
         path="/home"
         element={<ProtectedRoute><HomePage /></ProtectedRoute>}
+      />
+      <Route
+        path="/admin"
+        element={<ProtectedRoute><AdminPage /></ProtectedRoute>}
       />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

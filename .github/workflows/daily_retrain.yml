@@ -1,0 +1,35 @@
+name: Daily Model Retraining
+
+on:
+  schedule:
+    # Runs at 00:00 UTC every day
+    - cron: '0 0 * * *'
+  # Allows you to trigger this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger Hugging Face API
+        env:
+          ADMIN_SECRET_KEY: ${{ secrets.ADMIN_SECRET_KEY }}
+        run: |
+          echo "Triggering SVD model retraining on Hugging Face..."
+          RESPONSE=$(curl -w "\n%{http_code}" -s -X POST https://pectoro-backend-reco-films.hf.space/recommendations/retrain \
+               -H "x-admin-key: $ADMIN_SECRET_KEY" \
+               -H "Content-Type: application/json")
+          
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          
+          echo "Status: $HTTP_STATUS"
+          echo "Response: $BODY"
+          
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "::error::Retraining failed with HTTP status $HTTP_STATUS"
+            exit 1
+          fi
+          
+          echo "Retraining successful!"

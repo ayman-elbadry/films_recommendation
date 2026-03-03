@@ -27,6 +27,11 @@ export const getPopularMovies = (limit = 10) =>
 export const getRecommendations = () =>
   API.get('/recommendations');
 
+export const retrainModel = (adminKey) =>
+  API.post('/recommendations/retrain', {}, {
+    headers: { 'x-admin-key': adminKey }
+  });
+
 // Ratings
 export const submitRating = (movie_id, rating) =>
   API.post('/ratings', { movie_id, rating });
