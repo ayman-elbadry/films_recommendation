@@ -1,3 +1,11 @@
+---
+title: Backend Reco Films
+emoji: 🎥
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
 # 🎬 Movie Recommendation System
 
 A full-stack **hybrid movie recommendation system** combining **Content-Based Filtering** (TF-IDF on genres) and **Collaborative Filtering** (SVD with SGD) to deliver personalized movie suggestions. Built with **FastAPI** and **React + Vite**.
