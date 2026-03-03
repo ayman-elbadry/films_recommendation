@@ -16,7 +16,8 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from svd_model import SVDModel  # noqa: F401 — needed for pickle to resolve the class
-from fastapi import APIRouter, Depends, HTTPException, status
+import json
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 
 from tmdb_service import search_poster
 
@@ -114,7 +115,7 @@ def _predict_svd_ratings(user_id: int, movie_ids: list[int]) -> list[dict]:
             "movieId": int(mid),
             "title": str(row["title"]),
             "genres": str(row["genres"]),
-            "predicted_rating": round(predicted_rating, 2),
+            "predicted_rating": predicted_rating,
         })
     return results
 
@@ -144,6 +145,45 @@ async def get_popular_movies(limit: int = 10):
                 "poster_url": poster_url,
             })
     return results
+
+
+@router.post("/retrain")
+async def retrain_model(x_admin_key: str = Header(None)):
+    """
+    Retrain the SVD model combining ratings.csv and new_ratings.json.
+    Protected by ADMIN_SECRET_KEY environment variable.
+    """
+    admin_secret = os.environ.get("ADMIN_SECRET_KEY")
+    if not admin_secret:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Server is not configured with an ADMIN_SECRET_KEY.",
+        )
+    if x_admin_key != admin_secret:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid admin key.",
+        )
+
+    print("[ML] Admin triggered model retraining...")
+    try:
+        from train_model import train_and_save_model
+        train_and_save_model()
+
+        # Reload the model in memory so the API uses the new one immediately
+        global svd_model
+        if MODEL_PATH.exists():
+            with open(MODEL_PATH, "rb") as f:
+                svd_model = pickle.load(f)
+            print(f"[ML] Relocated updated SVD model from {MODEL_PATH}")
+
+        return {"status": "success", "message": "Model retrained and reloaded successfully."}
+    except Exception as e:
+        print(f"[ML] Retraining failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Retraining failed: {str(e)}"
+        )
 
 
 @router.get("")
@@ -185,6 +225,13 @@ async def get_recommendations(user: dict = Depends(get_current_user)):
 
     # Step 3: Collaborative — predict SVD ratings
     predictions = _predict_svd_ratings(user_id, similar_ids)
+
+    # Step 3.5: Fix Cold Start ties
+    # If SVD doesn't know the user, it predicts the exact same global_mean for everything.
+    # We add a tiny tie-breaker based on the content-based similarity order (how they were sorted).
+    for idx, p in enumerate(predictions):
+        tie_breaker = (len(predictions) - idx) * 0.001
+        p["predicted_rating"] = round(p["predicted_rating"] + tie_breaker, 3)
 
     # Step 4: Sort by predicted rating, return top 10
     predictions.sort(key=lambda x: x["predicted_rating"], reverse=True)
