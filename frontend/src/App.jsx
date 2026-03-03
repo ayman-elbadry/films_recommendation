@@ -5,6 +5,8 @@ import RegisterPage from './pages/RegisterPage';
 import OnboardingPage from './pages/OnboardingPage';
 import HomePage from './pages/HomePage';
 import AdminPage from './pages/AdminPage';
+import SearchPage from './pages/SearchPage';
+import HistoryPage from './pages/HistoryPage';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -45,6 +47,14 @@ function AppRoutes() {
       <Route
         path="/admin"
         element={<ProtectedRoute><AdminPage /></ProtectedRoute>}
+      />
+      <Route
+        path="/search"
+        element={<ProtectedRoute><SearchPage /></ProtectedRoute>}
+      />
+      <Route
+        path="/history"
+        element={<ProtectedRoute><HistoryPage /></ProtectedRoute>}
       />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

@@ -32,6 +32,13 @@ export const retrainModel = (adminKey) =>
     headers: { 'x-admin-key': adminKey }
   });
 
+// Movies
+export const searchMovies = (query) =>
+  API.get(`/movies/search?q=${query}`);
+
+export const getMovieDetails = (movieId) =>
+  API.get(`/movies/${movieId}/details`);
+
 // Ratings
 export const submitRating = (movie_id, rating) =>
   API.post('/ratings', { movie_id, rating });
@@ -41,5 +48,11 @@ export const submitBatchRatings = (ratings) =>
 
 export const getMyRatings = () =>
   API.get('/ratings');
+
+export const updateRating = (movie_id, rating) =>
+  API.put(`/ratings/${movie_id}`, { movie_id, rating });
+
+export const deleteRating = (movie_id) =>
+  API.delete(`/ratings/${movie_id}`);
 
 export default API;

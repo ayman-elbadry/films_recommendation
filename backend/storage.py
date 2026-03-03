@@ -123,3 +123,28 @@ def add_ratings_batch(user_id: int, rating_list: list[dict]):
 def get_ratings_for_user(user_id: int) -> list[dict]:
     """Return all ratings submitted by a specific user."""
     return [r for r in read_ratings() if r["user_id"] == user_id]
+
+
+def update_rating(user_id: int, movie_id: int, new_rating: float) -> bool:
+    """Update an existing rating. Returns True if found and updated."""
+    ratings = read_ratings()
+    found = False
+    for r in ratings:
+        if r["user_id"] == user_id and r["movie_id"] == movie_id:
+            r["rating"] = new_rating
+            found = True
+            break
+    if found:
+        write_ratings(ratings)
+    return found
+
+
+def delete_rating(user_id: int, movie_id: int) -> bool:
+    """Delete a rating. Returns True if found and deleted."""
+    ratings = read_ratings()
+    initial_len = len(ratings)
+    ratings = [r for r in ratings if not (r["user_id"] == user_id and r["movie_id"] == movie_id)]
+    if len(ratings) < initial_len:
+        write_ratings(ratings)
+        return True
+    return False

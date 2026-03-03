@@ -24,6 +24,10 @@ TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p"
 
 # In-memory cache: movieId -> poster_url
 _poster_cache: dict[int, str | None] = {}
+# In-memory cache: movieId -> tmdb_id
+_tmdb_id_cache: dict[int, int | None] = {}
+# In-memory cache: movieId -> full_details_dict
+_details_cache: dict[int, dict | None] = {}
 
 
 def _parse_title_year(title: str) -> tuple[str, str | None]:
@@ -52,7 +56,7 @@ async def search_poster(movie_id: int, title: str, size: str = "w500") -> str | 
         return None
 
     # Check cache first
-    if movie_id in _poster_cache:
+    if movie_id in _poster_cache and movie_id in _tmdb_id_cache:
         return _poster_cache[movie_id]
 
     name, year = _parse_title_year(title)
@@ -73,13 +77,18 @@ async def search_poster(movie_id: int, title: str, size: str = "w500") -> str | 
 
             results = data.get("results", [])
             if results:
-                poster_path = results[0].get("poster_path")
+                first_result = results[0]
+                tmdb_id = first_result.get("id")
+                _tmdb_id_cache[movie_id] = tmdb_id
+
+                poster_path = first_result.get("poster_path")
                 if poster_path:
                     url = f"{TMDB_IMAGE_BASE}/{size}{poster_path}"
                     _poster_cache[movie_id] = url
                     return url
 
         # No poster found
+        _tmdb_id_cache[movie_id] = _tmdb_id_cache.get(movie_id, None) 
         _poster_cache[movie_id] = None
         return None
 
@@ -100,3 +109,55 @@ async def get_posters_batch(movies: list[dict], size: str = "w500") -> dict[int,
         poster_url = await search_poster(mid, title, size)
         result[mid] = poster_url
     return result
+
+
+async def get_movie_details(movie_id: int, title: str) -> dict | None:
+    """
+    Fetch comprehensive movie details from TMDB (Synopsis, Cast, etc.).
+    Relies on search_poster to resolve the TMDB ID first if not cached.
+    """
+    if not TMDB_API_KEY:
+        return {"error": "Missing TMDB API Key"}
+
+    if movie_id in _details_cache:
+        return _details_cache[movie_id]
+
+    # Ensure we have the TMDB ID by calling the search
+    if movie_id not in _tmdb_id_cache:
+        await search_poster(movie_id, title)
+    
+    tmdb_id = _tmdb_id_cache.get(movie_id)
+    if not tmdb_id:
+        _details_cache[movie_id] = None
+        return None
+
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            params = {
+                "api_key": TMDB_API_KEY,
+                "append_to_response": "credits", # gets the cast
+            }
+            resp = await client.get(f"{TMDB_BASE_URL}/movie/{tmdb_id}", params=params)
+            resp.raise_for_status()
+            data = resp.json()
+
+            # Format the output nicely
+            cast_list = data.get("credits", {}).get("cast", [])
+            top_cast = [c["name"] for c in cast_list[:5]] # Take top 5 actors
+            
+            details = {
+                "tmdb_id": tmdb_id,
+                "overview": data.get("overview", "No synopsis available."),
+                "release_date": data.get("release_date", ""),
+                "runtime": data.get("runtime", 0),
+                "vote_average": data.get("vote_average", 0.0),
+                "cast": top_cast,
+                "tagline": data.get("tagline", "")
+            }
+            
+            _details_cache[movie_id] = details
+            return details
+
+    except Exception as e:
+        print(f"[TMDB] Error fetching full details for '{title}' (ID {tmdb_id}): {e}")
+        return None

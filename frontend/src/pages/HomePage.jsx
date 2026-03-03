@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getRecommendations, submitRating } from '../api';
-import { useAuth } from '../AuthContext';
+import { getRecommendations } from '../api';
+import Navbar from '../components/Navbar';
+import MovieDetailsModal from '../components/MovieDetailsModal';
 import './Home.css';
 
 export default function HomePage() {
@@ -9,9 +10,7 @@ export default function HomePage() {
     const [seedMovieId, setSeedMovieId] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [ratingModal, setRatingModal] = useState(null);
-    const [userRating, setUserRating] = useState(0);
-    const [submittingRating, setSubmittingRating] = useState(false);
+    const [selectedMovieId, setSelectedMovieId] = useState(null);
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
@@ -34,21 +33,6 @@ export default function HomePage() {
         fetchRecommendations();
     }, []);
 
-    const handleRate = async () => {
-        if (!ratingModal || userRating === 0) return;
-        setSubmittingRating(true);
-        try {
-            await submitRating(ratingModal.movieId, userRating);
-            setRatingModal(null);
-            setUserRating(0);
-            fetchRecommendations(); // Refresh after rating
-        } catch (err) {
-            alert(err.response?.data?.detail || 'Failed to submit rating');
-        } finally {
-            setSubmittingRating(false);
-        }
-    };
-
     const handleLogout = () => {
         logout();
         navigate('/login');
@@ -56,17 +40,7 @@ export default function HomePage() {
 
     return (
         <div className="home-container">
-            {/* Navbar */}
-            <nav className="navbar">
-                <div className="nav-brand">
-                    <span className="nav-icon">🎬</span>
-                    <span className="nav-title">MovieRec</span>
-                </div>
-                <div className="nav-right">
-                    <span className="nav-user">👤 {user?.username}</span>
-                    <button className="nav-logout" onClick={handleLogout}>Logout</button>
-                </div>
-            </nav>
+            <Navbar />
 
             {/* Main Content */}
             <main className="home-main">
@@ -93,7 +67,7 @@ export default function HomePage() {
                             <div
                                 key={movie.movieId}
                                 className="rec-card"
-                                onClick={() => { setRatingModal(movie); setUserRating(0); }}
+                                onClick={() => setSelectedMovieId(movie.movieId)}
                             >
                                 <div className="rec-rank">#{idx + 1}</div>
                                 <div className="rec-poster">
@@ -126,35 +100,12 @@ export default function HomePage() {
                 </button>
             </main>
 
-            {/* Rating Modal */}
-            {ratingModal && (
-                <div className="modal-overlay" onClick={() => setRatingModal(null)}>
-                    <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-                        <button className="modal-close" onClick={() => setRatingModal(null)}>✕</button>
-                        <h2>Rate this Movie</h2>
-                        <h3>{ratingModal.title}</h3>
-                        <p className="modal-genres">{ratingModal.genres.replace(/\|/g, ' • ')}</p>
-                        <div className="modal-stars">
-                            {[1, 2, 3, 4, 5].map(s => (
-                                <button
-                                    key={s}
-                                    className={`modal-star ${s <= userRating ? 'active' : ''}`}
-                                    onClick={() => setUserRating(s)}
-                                >
-                                    ★
-                                </button>
-                            ))}
-                        </div>
-                        {userRating > 0 && <p className="modal-rating-text">{userRating}/5 stars</p>}
-                        <button
-                            className="modal-submit"
-                            onClick={handleRate}
-                            disabled={userRating === 0 || submittingRating}
-                        >
-                            {submittingRating ? 'Submitting...' : 'Submit Rating'}
-                        </button>
-                    </div>
-                </div>
+            {selectedMovieId && (
+                <MovieDetailsModal
+                    movieId={selectedMovieId}
+                    onClose={() => setSelectedMovieId(null)}
+                    onSuccessHover={fetchRecommendations}
+                />
             )}
         </div>
     );
