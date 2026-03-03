@@ -7,9 +7,10 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ .
+COPY ratings.csv /ratings.csv
 
 # Give write permissions because HF Spaces run as a non-root user (1000)
-RUN chmod -R 777 /app
+RUN chmod -R 777 /app && chmod 644 /ratings.csv
 
 # Hugging Face Spaces expose port 7860 by default
 EXPOSE 7860
